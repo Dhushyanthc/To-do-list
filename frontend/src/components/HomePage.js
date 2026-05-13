@@ -9,6 +9,8 @@ const options = [
   { value: "completed", label: "Completed" },
 ];
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const HomePage = () => {
   const [tasks, setTasks] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
@@ -24,7 +26,7 @@ const HomePage = () => {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/tasks');
+      const response = await axios.get(`${API_URL}/api/tasks`);
       if (response.data.success) {
         setTasks(response.data.data);
         setFilteredTasks(response.data.data);
@@ -45,14 +47,12 @@ const HomePage = () => {
   useEffect(() => {
     let result = tasks;
 
-    // Filter by search term
     if (searchTerm) {
       result = result.filter(task =>
         task.task.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Filter by status
     if (filterStatus !== 'all') {
       result = result.filter(task => task.status === filterStatus);
     }
@@ -66,7 +66,7 @@ const HomePage = () => {
     if (!newTask.trim()) return;
 
     try {
-      const response = await axios.post('/api/tasks', { task: newTask });
+      const response = await axios.post(`${API_URL}/api/tasks`, { task: newTask });
       if (response.data.success) {
         setTasks([response.data.data, ...tasks]);
         setNewTask('');
@@ -81,7 +81,7 @@ const HomePage = () => {
   // Delete task
   const handleDeleteTask = async (taskId) => {
     try {
-      const response = await axios.delete(`/api/tasks/${taskId}`);
+      const response = await axios.delete(`${API_URL}/api/tasks/${taskId}`);
       if (response.data.success) {
         setTasks(tasks.filter(task => task.taskId !== taskId));
         setError('');
@@ -96,7 +96,7 @@ const HomePage = () => {
   const handleToggleStatus = async (taskId, currentStatus) => {
     const newStatus = currentStatus === 'completed' ? 'progress' : 'completed';
     try {
-      const response = await axios.put(`/api/tasks/${taskId}`, { status: newStatus });
+      const response = await axios.put(`${API_URL}/api/tasks/${taskId}`, { status: newStatus });
       if (response.data.success) {
         setTasks(tasks.map(task =>
           task.taskId === taskId ? { ...task, status: newStatus } : task
@@ -120,7 +120,7 @@ const HomePage = () => {
     if (!editText.trim()) return;
 
     try {
-      const response = await axios.put(`/api/tasks/${taskId}`, { task: editText });
+      const response = await axios.put(`${API_URL}/api/tasks/${taskId}`, { task: editText });
       if (response.data.success) {
         setTasks(tasks.map(task =>
           task.taskId === taskId ? { ...task, task: editText } : task
@@ -187,10 +187,8 @@ const HomePage = () => {
           </div>
         </div>
 
-        {/* Error Message */}
         {error && <div className="error-message">{error}</div>}
 
-        {/* Tasks List */}
         <div className="tasks-container">
           {loading ? (
             <div className="loading-text">Loading tasks...</div>
@@ -259,7 +257,6 @@ const HomePage = () => {
           )}
         </div>
 
-        {/* Stats */}
         <div className="stats">
           <div className="stat-item">
             <span className="stat-number">{tasks.length}</span>
