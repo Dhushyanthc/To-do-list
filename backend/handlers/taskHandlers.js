@@ -1,12 +1,36 @@
 const Task = require('../models/Task');
+const path = require('path');
+const fs = require('fs');
+const { v4: uuidv4 } = require('uuid');
 
-// Get all tasks
+// Get all tasks for authenticated user
 const getAllTasks = async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
+    const query = { userId: req.user.userId };
+
+    // Optional filter by projectId
+    if (req.query.projectId) {
+      query.projectId = req.query.projectId;
+    }
+
+    const tasks = await Task.find(query).sort({ createdAt: -1 }).lean();
+
+    // Fetch user projects to map project names
+    const Project = require('../models/Project');
+    const projects = await Project.find({ userId: req.user.userId }).lean();
+    const projectMap = {};
+    projects.forEach(p => {
+      projectMap[p.projectId] = p.name;
+    });
+
+    const tasksWithProjectName = tasks.map(task => ({
+      ...task,
+      projectName: task.projectId ? projectMap[task.projectId] || null : null
+    }));
+
     res.status(200).json({
       success: true,
-      data: tasks
+      data: tasksWithProjectName
     });
   } catch (error) {
     res.status(500).json({
@@ -20,7 +44,7 @@ const getAllTasks = async (req, res) => {
 // Get single task
 const getTaskById = async (req, res) => {
   try {
-    const task = await Task.findOne({ taskId: req.params.id });
+    const task = await Task.findOne({ taskId: req.params.id, userId: req.user.userId });
     
     if (!task) {
       return res.status(404).json({
@@ -45,7 +69,7 @@ const getTaskById = async (req, res) => {
 // Create new task
 const createTask = async (req, res) => {
   try {
-    const { task } = req.body;
+    const { task, description, dueDate, priority, projectId } = req.body;
     
     if (!task) {
       return res.status(400).json({
@@ -53,9 +77,30 @@ const createTask = async (req, res) => {
         message: 'Task description is required'
       });
     }
+
+    // Build attachments array from uploaded files
+    const attachments = [];
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        attachments.push({
+          attachmentId: uuidv4(),
+          filename: file.filename,
+          originalName: file.originalname,
+          path: `/uploads/${file.filename}`,
+          mimetype: file.mimetype,
+          size: file.size
+        });
+      });
+    }
     
     const newTask = await Task.create({
+      userId: req.user.userId,
+      projectId: projectId || null,
       task,
+      description: description || '',
+      dueDate: dueDate || null,
+      priority: priority ? parseInt(priority, 10) : 4,
+      attachments,
       status: 'progress'
     });
     
@@ -76,14 +121,34 @@ const createTask = async (req, res) => {
 // Update task
 const updateTask = async (req, res) => {
   try {
-    const { task, status } = req.body;
+    const { task, status, description, dueDate, priority, projectId } = req.body;
     
     const updateData = {};
     if (task !== undefined) updateData.task = task;
     if (status !== undefined) updateData.status = status;
+    if (description !== undefined) updateData.description = description;
+    if (dueDate !== undefined) updateData.dueDate = dueDate;
+    if (priority !== undefined) updateData.priority = parseInt(priority, 10);
+    if (projectId !== undefined) updateData.projectId = projectId;
+
+    // If new files are uploaded, append them to existing attachments
+    if (req.files && req.files.length > 0) {
+      const existingTask = await Task.findOne({ taskId: req.params.id, userId: req.user.userId });
+      if (existingTask) {
+        const newAttachments = req.files.map(file => ({
+          attachmentId: uuidv4(),
+          filename: file.filename,
+          originalName: file.originalname,
+          path: `/uploads/${file.filename}`,
+          mimetype: file.mimetype,
+          size: file.size
+        }));
+        updateData.attachments = [...(existingTask.attachments || []), ...newAttachments];
+      }
+    }
     
     const updatedTask = await Task.findOneAndUpdate(
-      { taskId: req.params.id },
+      { taskId: req.params.id, userId: req.user.userId },
       updateData,
       { new: true, runValidators: true }
     );
@@ -112,12 +177,22 @@ const updateTask = async (req, res) => {
 // Delete task
 const deleteTask = async (req, res) => {
   try {
-    const deletedTask = await Task.findOneAndDelete({ taskId: req.params.id });
+    const deletedTask = await Task.findOneAndDelete({ taskId: req.params.id, userId: req.user.userId });
     
     if (!deletedTask) {
       return res.status(404).json({
         success: false,
         message: 'Task not found'
+      });
+    }
+
+    // Clean up attached files from filesystem
+    if (deletedTask.attachments && deletedTask.attachments.length > 0) {
+      deletedTask.attachments.forEach(attachment => {
+        const filePath = path.join(__dirname, '..', attachment.path);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
       });
     }
     
@@ -135,10 +210,56 @@ const deleteTask = async (req, res) => {
   }
 };
 
+// Delete a specific attachment from a task
+const deleteAttachment = async (req, res) => {
+  try {
+    const { id, attachmentId } = req.params;
+
+    const task = await Task.findOne({ taskId: id, userId: req.user.userId });
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    const attachment = task.attachments.find(a => a.attachmentId === attachmentId);
+    if (!attachment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attachment not found'
+      });
+    }
+
+    // Remove file from filesystem
+    const filePath = path.join(__dirname, '..', attachment.path);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Remove attachment from task document
+    task.attachments = task.attachments.filter(a => a.attachmentId !== attachmentId);
+    await task.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Attachment deleted successfully',
+      data: task
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting attachment',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllTasks,
   getTaskById,
   createTask,
   updateTask,
-  deleteTask
+  deleteTask,
+  deleteAttachment
 };

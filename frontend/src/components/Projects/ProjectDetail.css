@@ -1,0 +1,136 @@
+.project-detail-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+
+.project-detail-header {
+  margin-bottom: 30px;
+}
+
+.back-link {
+  display: inline-block;
+  color: #808080;
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 12px;
+  transition: color 0.15s;
+}
+
+.back-link:hover {
+  color: #202020;
+}
+
+.project-detail-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #202020;
+  margin: 0 0 8px 0;
+}
+
+.project-description {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  max-width: 600px;
+}
+
+.project-detail-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 40px;
+}
+
+/* Left Column: Calendar */
+.project-calendar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.calendar-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  border: 1px solid #f0ede8;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+/* React DatePicker Customization inside ProjectDetail */
+.calendar-container .react-datepicker {
+  border: none;
+  font-family: inherit;
+  background-color: transparent;
+}
+
+.calendar-container .react-datepicker__header {
+  background-color: transparent;
+  border-bottom: none;
+}
+
+.calendar-container .react-datepicker__day--keyboard-selected, 
+.calendar-container .react-datepicker__month-text--keyboard-selected, 
+.calendar-container .react-datepicker__quarter-text--keyboard-selected, 
+.calendar-container .react-datepicker__year-text--keyboard-selected {
+  background-color: #d1453b;
+}
+
+.calendar-container .react-datepicker__day--selected {
+  background-color: #d1453b;
+  border-radius: 50%;
+}
+
+.calendar-container .react-datepicker__day--highlighted {
+  background-color: #fce8e6;
+  color: #d1453b;
+  border-radius: 50%;
+  font-weight: bold;
+}
+
+.date-tasks h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #202020;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0ede8;
+}
+
+.no-tasks-msg {
+  font-size: 14px;
+  color: #808080;
+  font-style: italic;
+}
+
+/* Right Column: Tasks */
+.project-all-tasks-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #202020;
+  margin: 0 0 20px 0;
+}
+
+.project-add-task-wrapper {
+  margin-top: 16px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #f0ede8;
+}
+
+@media (max-width: 768px) {
+  .project-detail-page {
+    padding: 16px;
+  }
+  
+  .project-detail-layout {
+    grid-template-columns: 1fr;
+  }
+}

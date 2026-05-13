@@ -1,0 +1,102 @@
+.profile-menu {
+  position: absolute;
+  top: 48px;
+  left: 12px;
+  width: 280px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #f0ede8;
+  z-index: 100;
+  padding: 8px 0;
+  animation: slideDown 0.15s ease-out;
+}
+
+.profile-menu-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 12px;
+}
+
+.profile-menu-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #246fe0;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.profile-menu-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.profile-menu-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #202020;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-menu-subtext {
+  font-size: 13px;
+  color: #808080;
+  margin-top: 2px;
+}
+
+.profile-menu-divider {
+  height: 1px;
+  background: #f0ede8;
+  margin: 8px 0;
+}
+
+.profile-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #202020;
+  transition: background-color 0.15s;
+  text-align: left;
+}
+
+.profile-menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.profile-menu-icon {
+  width: 24px;
+  font-size: 16px;
+  color: #808080;
+  display: flex;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+.profile-menu-text {
+  flex: 1;
+  font-size: 14px;
+}
+
+.profile-menu-shortcut {
+  font-size: 12px;
+  color: #aaa;
+  margin-left: 12px;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

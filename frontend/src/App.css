@@ -10,11 +10,77 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #FFF6DE;
 }
 
 .App {
+  display: flex;
   width: 100%;
   min-height: 100vh;
+}
+
+.App.auth-mode {
+  background-color: #FFF6DE;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  background-color: #ffffff;
+  overflow-y: auto;
+  height: 100vh;
+  margin-left: 280px; /* Sidebar width */
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-content--full {
+  margin-left: 0;
+}
+
+/* Global error toast */
+.global-error {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background-color: #fee;
+  color: #c33;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  animation: slideDown 0.3s ease;
+}
+
+.global-error-close {
+  background: none;
+  border: none;
+  color: #c33;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.global-error-close:hover {
+  opacity: 1;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* Smooth scrolling */
@@ -24,29 +90,32 @@ html {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #FFF6DE;
+  background: #fafaf8;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #427AB5;
-  border-radius: 5px;
+  background: #ddd;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #124170;
+  background: #ccc;
 }
 
-/* Media queries for mobile view */
+/* Responsive */
 @media (max-width: 768px) {
   .App {
-    padding: 10px;
+    display: block;
   }
 
-  ::-webkit-scrollbar {
-    width: 8px;
+  .main-content {
+    margin-left: 0;
+    padding-top: 50px;
+    height: auto;
+    min-height: 100vh;
   }
 }

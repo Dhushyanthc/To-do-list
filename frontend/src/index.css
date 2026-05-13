@@ -12,9 +12,7 @@ code {
     monospace;
 }
 
-/* Media queries for mobile view */
-@media (max-width: 768px) {
-  body {
-    font-size: 14px;
-  }
+/* Prevent body scroll on mobile when sidebar is open */
+body.sidebar-open {
+  overflow: hidden;
 }

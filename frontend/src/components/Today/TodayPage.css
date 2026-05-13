@@ -1,0 +1,98 @@
+.today-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+
+.today-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: #808080;
+  font-size: 13px;
+}
+
+.today-subtitle svg {
+  color: #427AB5;
+}
+
+.tasks-section {
+  min-height: 200px;
+}
+
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #808080;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  font-size: 16px;
+  color: #333;
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #808080;
+  margin: 0;
+}
+
+/* Add task trigger */
+.add-task-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: #808080;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.15s;
+  text-align: left;
+  border-radius: 8px;
+}
+
+.add-task-trigger:hover {
+  color: #d1453b;
+}
+
+.add-task-trigger-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 300;
+  transition: all 0.15s;
+  color: #d1453b;
+}
+
+.add-task-trigger:hover .add-task-trigger-icon {
+  background-color: #d1453b;
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .today-page {
+    padding: 60px 16px 20px;
+  }
+}

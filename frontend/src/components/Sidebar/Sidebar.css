@@ -1,0 +1,311 @@
+.sidebar {
+  width: 280px;
+  height: 100vh;
+  background-color: #fafaf8;
+  border-right: 1px solid #f0ede8;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  overflow-y: auto;
+}
+
+.sidebar--collapsed {
+  transform: translateX(-100%);
+}
+
+.sidebar-hamburger {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  background: white;
+  border: 1px solid #f0ede8;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #202020;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.sidebar-hamburger:hover {
+  background: #f5f5f5;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 30;
+  display: none;
+}
+
+/* Header & Profile */
+.sidebar-header {
+  padding: 48px 12px 12px; /* Extra top padding to clear hamburger */
+  position: relative;
+}
+
+.sidebar-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.sidebar-profile-btn:hover {
+  background-color: #f0ede8;
+}
+
+.sidebar-avatar-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #246fe0;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sidebar-username {
+  font-size: 14px;
+  font-weight: 700;
+  color: #202020;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-chevron {
+  font-size: 10px;
+  color: #808080;
+}
+
+/* Quick Actions */
+.sidebar-quick-actions {
+  padding: 0 12px 12px;
+}
+
+.sidebar-add-task-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #d1453b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.sidebar-add-task-btn:hover {
+  background-color: #f0ede8;
+}
+
+.add-icon-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #d1453b;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+/* Navigation */
+.sidebar-nav {
+  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #202020;
+  transition: background-color 0.15s;
+  cursor: pointer;
+}
+
+.sidebar-nav-item:hover {
+  background-color: #f0ede8;
+}
+
+.sidebar-nav-item--active {
+  background-color: #fce8e6;
+  color: #d1453b;
+}
+
+.sidebar-nav-item--active .sidebar-nav-icon {
+  color: #d1453b;
+}
+
+.sidebar-nav-icon {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  color: #808080;
+  font-size: 16px;
+}
+
+.sidebar-nav-label {
+  font-size: 14px;
+  flex: 1;
+}
+
+.sidebar-nav-badge {
+  background-color: #f0ede8;
+  color: #808080;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+/* Projects Section */
+.sidebar-projects-section {
+  margin-top: 24px;
+  padding: 0 12px;
+}
+
+.sidebar-projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.15s;
+}
+
+.sidebar-projects-header:hover {
+  background-color: #f0ede8;
+}
+
+.sidebar-projects-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #666;
+}
+
+.sidebar-projects-chevron {
+  font-size: 16px;
+  color: #aaa;
+  transition: transform 0.2s;
+}
+
+.sidebar-projects-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.sidebar-projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.sidebar-project-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 8px 8px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #202020;
+  font-size: 14px;
+  transition: background-color 0.15s;
+}
+
+.sidebar-project-item:hover {
+  background-color: #f0ede8;
+}
+
+.sidebar-project-item--active {
+  background-color: #fce8e6;
+  font-weight: 600;
+}
+
+.project-hash {
+  color: #808080;
+  margin-right: 8px;
+  font-weight: 400;
+}
+
+.project-add-icon {
+  color: #808080;
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.project-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-badge {
+  font-size: 12px;
+  color: #808080;
+}
+
+/* Global Add Task Modal */
+.global-add-task-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+}
+
+.global-add-task-container {
+  width: 100%;
+  max-width: 600px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+  padding: 16px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+  }
+}
