@@ -1,213 +1,138 @@
-# Todo List Application
+# Advanced Full-Stack Task & Project Management App
 
-A full-stack MERN (MongoDB, Express, React, Node.js) todo list application with a clean, responsive UI.
+A sophisticated, full-stack MERN (MongoDB, Express, React, Node.js) application heavily inspired by Todoist. It features secure user authentication, project-scoped task management, file attachments, deadline tracking, and AI-powered progress reporting via Google Gemini.
 
-## Features
+## 🚀 Features
 
-- ✅ Create, read, update, and delete tasks
-- ✅ Mark tasks as completed or in progress
-- ✅ Search functionality to filter tasks
-- ✅ Status filter (All, In Progress, Completed)
-- ✅ Loading screen on startup
-- ✅ Responsive design for mobile and desktop
-- ✅ Clean UI with custom color scheme
+- **User Authentication:** Secure signup/login with JWT session management and bcrypt password hashing.
+- **Project Management:** Create private projects, set project-level deadlines, and track task progress.
+- **Task Organization:**
+  - Create, read, update, and delete tasks.
+  - Set specific Due Dates and Times.
+  - Set Priorities (P1, P2, P3, P4) with visual color badges.
+  - Add descriptions and attach files (images, documents, PDFs) directly to tasks.
+- **AI Progress Reports:** Generate dynamic, intelligent summaries of your project's progress and upcoming deadlines using the Google Gemini 2.5 Flash API.
+- **Smart Filtering & Searching:** Search for tasks by name, or use dedicated Inbox/Today/Upcoming tabs.
+- **Responsive UI:** Clean, modern, warm color scheme (`#FFF6DE` background) with a fully responsive layout for desktop, tablet, and mobile. Sidebar navigation with a collapsible profile menu.
 
-## Color Scheme
+## 🛠️ Technology Stack
 
-- Background: `#FFF6DE` (Cream)
-- Primary: `#427AB5` (Blue)
-- Secondary: `#124170` (Dark Blue)
+### Frontend
+- **React 18** (Context API for Auth state management)
+- **Axios** (With interceptors for JWT token injection)
+- **React Router v7** (Protected routing and navigation)
+- **React DatePicker** & **React Select**
+- Vanilla CSS (Custom layouts, responsive media queries, and animations)
 
-## Project Structure
+### Backend
+- **Node.js & Express.js**
+- **MongoDB & Mongoose** (User, Project, and Task schemas)
+- **JSON Web Tokens (JWT) & bcryptjs** (Authentication & security)
+- **Multer** (Local file uploading and storage)
+- **Google Generative AI SDK** (Gemini 2.5 integration)
+
+## 📁 Project Structure
 
 ```
 To_do_list/
 ├── backend/
-│   ├── models/
-│   │   └── Task.js
-│   ├── handlers/
-│   │   └── taskHandlers.js
-│   ├── server.js
-│   ├── package.json
-│   └── .env.example
+│   ├── handlers/         # Express route handlers (auth, tasks, projects, reports)
+│   ├── middleware/       # JWT Auth verification middleware
+│   ├── models/           # Mongoose schemas (User, Task, Project)
+│   ├── uploads/          # Local storage for task attachments
+│   ├── server.js         # Entry point and Express configuration
+│   └── package.json
 └── frontend/
     ├── public/
-    │   └── index.html
     ├── src/
-    │   ├── components/
-    │   │   ├── LoadingScreen.js
-    │   │   ├── LoadingScreen.css
-    │   │   ├── HomePage.js
-    │   │   └── HomePage.css
-    │   ├── App.js
-    │   ├── App.css
-    │   ├── index.js
-    │   └── index.css
+    │   ├── components/   # UI components (Sidebar, TodayPage, ProjectsPage, etc.)
+    │   ├── context/      # AuthContext for global session state
+    │   ├── App.js        # Main routing and layout wrapper
+    │   └── index.css     # Global styles and CSS variables
     └── package.json
 ```
 
-## Prerequisites
+## ⚙️ Installation & Setup
 
-Before you begin, ensure you have the following installed:
-- Node.js (v14 or higher)
-- MongoDB (running locally or MongoDB Atlas account)
-- npm or yarn
-
-## Installation & Setup
-
-### 1. Clone or Navigate to Project Directory
-
-```bash
-cd To_do_list
-```
+### 1. Prerequisites
+- Node.js (v16+)
+- MongoDB (running locally or MongoDB Atlas)
+- A Google Gemini API Key
 
 ### 2. Backend Setup
 
 ```bash
-# Navigate to backend directory
 cd backend
-
-# Install dependencies
 npm install
-
-# Create .env file
-cp .env.example .env
-
-# Edit .env and add your MongoDB connection string
-# MONGODB_URI=mongodb://localhost:27017/todolist
-# PORT=5000
 ```
 
-**Start MongoDB locally (if using local MongoDB):**
+Create a `.env` file in the `backend` directory:
+```env
+MONGODB_URI=mongodb://localhost:27017/todolist
+PORT=5000
+JWT_SECRET=your_super_secret_jwt_key
+GEMINI_API_KEY=your_google_gemini_api_key
+```
+
+Start the backend server:
 ```bash
-mongod
+npm run dev
 ```
-
-**Start the backend server:**
-```bash
-npm start
-```
-
-The backend will run on `http://localhost:5000`
 
 ### 3. Frontend Setup
 
 Open a new terminal:
-
 ```bash
-# Navigate to frontend directory
 cd frontend
-
-# Install dependencies
 npm install
+```
 
-# Start the development server
+Create a `.env` file in the `frontend` directory:
+```env
+# For local development:
+REACT_APP_API_URL=http://localhost:5000
+
+# For production, change this to your deployed backend URL
+```
+
+Start the React frontend:
+```bash
 npm start
 ```
 
-The frontend will run on `http://localhost:3000`
+## 🌐 API Endpoints
 
-## API Endpoints
+### Authentication
+- `POST /api/auth/signup` - Register a new user
+- `POST /api/auth/login` - Login and receive JWT
+- `GET /api/auth/me` - Validate JWT and get user profile
+- `PUT /api/auth/change-password` - Update user password
 
-### Tasks
+### Projects (Protected)
+- `GET /api/projects` - Get all projects for user
+- `GET /api/projects/:id` - Get specific project (with populated tasks)
+- `POST /api/projects` - Create project
+- `PUT /api/projects/:id` - Update project details/deadline
+- `DELETE /api/projects/:id` - Delete project
 
-- `GET /api/tasks` - Get all tasks
-- `GET /api/tasks/:id` - Get a single task by taskId
-- `POST /api/tasks` - Create a new task
-- `PUT /api/tasks/:id` - Update a task (status or task text)
-- `DELETE /api/tasks/:id` - Delete a task
+### Tasks (Protected)
+- `GET /api/tasks` - Get all tasks (optional `?projectId=` query)
+- `POST /api/tasks` - Create task (supports multipart form data for file uploads)
+- `PUT /api/tasks/:id` - Update task / add attachments
+- `DELETE /api/tasks/:id` - Delete task and its local files
+- `DELETE /api/tasks/:id/attachments/:attachmentId` - Remove specific attachment
 
-### Health Check
+### AI Reports (Protected)
+- `POST /api/report/generate` - Analyze project tasks using Gemini and return markdown summary
 
-- `GET /api/health` - Check if server is running
+## 🚢 Deployment
 
-## Task Schema
+**Frontend (Vercel/Netlify):**
+Ensure your build command is configured properly. If using Vercel, you may need to disable the strict CI warnings by setting the build script in `package.json` to:
+`"build": "CI=false react-scripts build"`
 
-```javascript
-{
-  taskId: String (UUID, unique),
-  task: String (required),
-  status: String (enum: ['completed', 'progress'], default: 'progress'),
-  createdAt: Date,
-  updatedAt: Date
-}
-```
+**Backend (Render/Heroku):**
+Ensure the deployment service has access to read/write the `uploads/` directory if persisting files locally. Set all environment variables (`MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY`) in your hosting provider's dashboard.
 
-## Usage
-
-1. **Loading Screen**: When you first open the app, you'll see a loading screen for 2 seconds
-2. **Add Task**: Type your task in the input field and click "Add Task"
-3. **Search**: Use the search bar to filter tasks by text
-4. **Filter**: Use the dropdown to filter by status (All, In Progress, Completed)
-5. **Complete Task**: Click the checkbox to mark a task as completed
-6. **Edit Task**: Click the edit button (✎) to modify a task
-7. **Delete Task**: Click the delete button (🗑) to remove a task
-8. **View Stats**: See total, in progress, and completed task counts at the bottom
-
-## Responsive Design
-
-The application is fully responsive and works seamlessly on:
-- Desktop (1024px and above)
-- Tablet (768px - 1023px)
-- Mobile (below 768px)
-
-## Technologies Used
-
-### Frontend
-- React 18
-- Axios (API calls)
-- CSS3 (Responsive design)
-
-### Backend
-- Node.js
-- Express.js
-- MongoDB with Mongoose
-- UUID (for unique task IDs)
-- CORS (Cross-Origin Resource Sharing)
-
-## Development Scripts
-
-### Backend
-```bash
-npm start      # Start the server
-npm run dev    # Start with nodemon (auto-restart on changes)
-```
-
-### Frontend
-```bash
-npm start      # Start development server
-npm build      # Create production build
-npm test       # Run tests
-```
-
-## Troubleshooting
-
-### MongoDB Connection Issues
-- Ensure MongoDB is running locally or your MongoDB Atlas connection string is correct
-- Check that the port 27017 is not blocked
-- Verify your .env file has the correct MONGODB_URI
-
-### Port Already in Use
-- Backend: Change PORT in .env file
-- Frontend: Set PORT environment variable before starting
-
-### CORS Issues
-- The backend is configured to accept requests from any origin
-- If you face issues, check the CORS configuration in server.js
-
-## Future Enhancements
-
-- [ ] User authentication
-- [ ] Task categories/tags
-- [ ] Due dates and reminders
-- [ ] Priority levels
-- [ ] Dark mode
-- [ ] Drag and drop task reordering
-
-## License
-
+## 📄 License
 This project is open source and available under the MIT License.
-
-## Author
-
-Created for a full-stack development task.

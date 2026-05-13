@@ -1,12 +1,26 @@
 const Task = require('../models/Task');
+const ProjectMember = require('../models/ProjectMember');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
-// Get all tasks for authenticated user
+// Helper function
+async function memberProjectIds(userId) {
+  const memberships = await ProjectMember.find({ userId }).select('projectId');
+  return memberships.map(m => m.projectId);
+}
+
+// Get all tasks for authenticated user (and their shared projects)
 const getAllTasks = async (req, res) => {
   try {
-    const query = { userId: req.user.userId };
+    const projectIds = await memberProjectIds(req.user.userId);
+    
+    let query = {
+      $or: [
+        { userId: req.user.userId },
+        { projectId: { $in: projectIds } }
+      ]
+    };
 
     // Optional filter by projectId
     if (req.query.projectId) {
@@ -17,7 +31,14 @@ const getAllTasks = async (req, res) => {
 
     // Fetch user projects to map project names
     const Project = require('../models/Project');
-    const projects = await Project.find({ userId: req.user.userId }).lean();
+    // Fetch all projects the user is a member of or owns
+    const projects = await Project.find({
+       $or: [
+         { userId: req.user.userId },
+         { projectId: { $in: projectIds } }
+       ]
+    }).lean();
+    
     const projectMap = {};
     projects.forEach(p => {
       projectMap[p.projectId] = p.name;
@@ -44,25 +65,20 @@ const getAllTasks = async (req, res) => {
 // Get single task
 const getTaskById = async (req, res) => {
   try {
-    const task = await Task.findOne({ taskId: req.params.id, userId: req.user.userId });
+    const task = await Task.findOne({ taskId: req.params.id });
     
     if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found'
-      });
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    const projectIds = await memberProjectIds(req.user.userId);
+    if (task.userId !== req.user.userId && !projectIds.includes(task.projectId)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
     
-    res.status(200).json({
-      success: true,
-      data: task
-    });
+    res.status(200).json({ success: true, data: task });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching task',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error fetching task', error: error.message });
   }
 };
 
@@ -72,10 +88,19 @@ const createTask = async (req, res) => {
     const { task, description, dueDate, priority, projectId } = req.body;
     
     if (!task) {
-      return res.status(400).json({
-        success: false,
-        message: 'Task description is required'
-      });
+      return res.status(400).json({ success: false, message: 'Task description is required' });
+    }
+
+    if (projectId) {
+      const projectIds = await memberProjectIds(req.user.userId);
+      if (!projectIds.includes(projectId)) {
+        // Double check they aren't the sole owner without a membership (legacy check)
+        const Project = require('../models/Project');
+        const legacyProj = await Project.findOne({ projectId, userId: req.user.userId });
+        if (!legacyProj) {
+           return res.status(403).json({ success: false, message: 'Not authorized to add tasks to this project' });
+        }
+      }
     }
 
     // Build attachments array from uploaded files
@@ -104,23 +129,23 @@ const createTask = async (req, res) => {
       status: 'progress'
     });
     
-    res.status(201).json({
-      success: true,
-      data: newTask,
-      message: 'Task created successfully'
-    });
+    res.status(201).json({ success: true, data: newTask, message: 'Task created successfully' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error creating task',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error creating task', error: error.message });
   }
 };
 
 // Update task
 const updateTask = async (req, res) => {
   try {
+    const taskObj = await Task.findOne({ taskId: req.params.id });
+    if (!taskObj) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    const projectIds = await memberProjectIds(req.user.userId);
+    if (taskObj.userId !== req.user.userId && !projectIds.includes(taskObj.projectId)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
     const { task, status, description, dueDate, priority, projectId } = req.body;
     
     const updateData = {};
@@ -129,62 +154,50 @@ const updateTask = async (req, res) => {
     if (description !== undefined) updateData.description = description;
     if (dueDate !== undefined) updateData.dueDate = dueDate;
     if (priority !== undefined) updateData.priority = parseInt(priority, 10);
-    if (projectId !== undefined) updateData.projectId = projectId;
+    if (projectId !== undefined) {
+      if (projectId && !projectIds.includes(projectId)) {
+        return res.status(403).json({ success: false, message: 'Not authorized for target project' });
+      }
+      updateData.projectId = projectId;
+    }
 
     // If new files are uploaded, append them to existing attachments
     if (req.files && req.files.length > 0) {
-      const existingTask = await Task.findOne({ taskId: req.params.id, userId: req.user.userId });
-      if (existingTask) {
-        const newAttachments = req.files.map(file => ({
-          attachmentId: uuidv4(),
-          filename: file.filename,
-          originalName: file.originalname,
-          path: `/uploads/${file.filename}`,
-          mimetype: file.mimetype,
-          size: file.size
-        }));
-        updateData.attachments = [...(existingTask.attachments || []), ...newAttachments];
-      }
+      const newAttachments = req.files.map(file => ({
+        attachmentId: uuidv4(),
+        filename: file.filename,
+        originalName: file.originalname,
+        path: `/uploads/${file.filename}`,
+        mimetype: file.mimetype,
+        size: file.size
+      }));
+      updateData.attachments = [...(taskObj.attachments || []), ...newAttachments];
     }
     
     const updatedTask = await Task.findOneAndUpdate(
-      { taskId: req.params.id, userId: req.user.userId },
+      { taskId: req.params.id },
       updateData,
       { new: true, runValidators: true }
     );
     
-    if (!updatedTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found'
-      });
-    }
-    
-    res.status(200).json({
-      success: true,
-      data: updatedTask,
-      message: 'Task updated successfully'
-    });
+    res.status(200).json({ success: true, data: updatedTask, message: 'Task updated successfully' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error updating task',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error updating task', error: error.message });
   }
 };
 
 // Delete task
 const deleteTask = async (req, res) => {
   try {
-    const deletedTask = await Task.findOneAndDelete({ taskId: req.params.id, userId: req.user.userId });
-    
-    if (!deletedTask) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found'
-      });
+    const taskObj = await Task.findOne({ taskId: req.params.id });
+    if (!taskObj) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    const projectIds = await memberProjectIds(req.user.userId);
+    if (taskObj.userId !== req.user.userId && !projectIds.includes(taskObj.projectId)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
+
+    const deletedTask = await Task.findOneAndDelete({ taskId: req.params.id });
 
     // Clean up attached files from filesystem
     if (deletedTask.attachments && deletedTask.attachments.length > 0) {
@@ -196,17 +209,9 @@ const deleteTask = async (req, res) => {
       });
     }
     
-    res.status(200).json({
-      success: true,
-      message: 'Task deleted successfully',
-      data: deletedTask
-    });
+    res.status(200).json({ success: true, message: 'Task deleted successfully', data: deletedTask });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting task',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error deleting task', error: error.message });
   }
 };
 
@@ -215,20 +220,17 @@ const deleteAttachment = async (req, res) => {
   try {
     const { id, attachmentId } = req.params;
 
-    const task = await Task.findOne({ taskId: id, userId: req.user.userId });
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found'
-      });
+    const taskObj = await Task.findOne({ taskId: id });
+    if (!taskObj) return res.status(404).json({ success: false, message: 'Task not found' });
+
+    const projectIds = await memberProjectIds(req.user.userId);
+    if (taskObj.userId !== req.user.userId && !projectIds.includes(taskObj.projectId)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const attachment = task.attachments.find(a => a.attachmentId === attachmentId);
+    const attachment = taskObj.attachments.find(a => a.attachmentId === attachmentId);
     if (!attachment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Attachment not found'
-      });
+      return res.status(404).json({ success: false, message: 'Attachment not found' });
     }
 
     // Remove file from filesystem
@@ -238,20 +240,12 @@ const deleteAttachment = async (req, res) => {
     }
 
     // Remove attachment from task document
-    task.attachments = task.attachments.filter(a => a.attachmentId !== attachmentId);
-    await task.save();
+    taskObj.attachments = taskObj.attachments.filter(a => a.attachmentId !== attachmentId);
+    await taskObj.save();
 
-    res.status(200).json({
-      success: true,
-      message: 'Attachment deleted successfully',
-      data: task
-    });
+    res.status(200).json({ success: true, message: 'Attachment deleted successfully', data: taskObj });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting attachment',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Error deleting attachment', error: error.message });
   }
 };
 

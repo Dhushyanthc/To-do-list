@@ -1,17 +1,27 @@
 const Project = require('../models/Project');
 const Task = require('../models/Task');
+const ProjectMember = require('../models/ProjectMember');
+const User = require('../models/User');
+
+// Helper to get project IDs a user is a member of
+async function memberProjectIds(userId) {
+  const memberships = await ProjectMember.find({ userId }).select('projectId');
+  return memberships.map(m => m.projectId);
+}
 
 // Get all projects for user
 const getAllProjects = async (req, res) => {
   try {
-    const projects = await Project.find({ userId: req.user.userId }).sort({ createdAt: -1 });
+    const projectIds = await memberProjectIds(req.user.userId);
+    const projects = await Project.find({ projectId: { $in: projectIds } }).sort({ createdAt: -1 });
 
     // Get task counts for each project
     const projectsWithCounts = await Promise.all(
       projects.map(async (project) => {
-        const totalTasks = await Task.countDocuments({ projectId: project.projectId, userId: req.user.userId });
-        const completedTasks = await Task.countDocuments({ projectId: project.projectId, userId: req.user.userId, status: 'completed' });
-        const progressTasks = await Task.countDocuments({ projectId: project.projectId, userId: req.user.userId, status: 'progress' });
+        // Shared projects -> count all tasks in project, not just user's tasks
+        const totalTasks = await Task.countDocuments({ projectId: project.projectId });
+        const completedTasks = await Task.countDocuments({ projectId: project.projectId, status: 'completed' });
+        const progressTasks = await Task.countDocuments({ projectId: project.projectId, status: 'progress' });
         return {
           ...project.toObject(),
           totalTasks,
@@ -37,7 +47,15 @@ const getAllProjects = async (req, res) => {
 // Get single project with tasks
 const getProjectById = async (req, res) => {
   try {
-    const project = await Project.findOne({ projectId: req.params.id, userId: req.user.userId });
+    const membership = await ProjectMember.findOne({ projectId: req.params.id, userId: req.user.userId });
+    if (!membership) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found or unauthorized'
+      });
+    }
+
+    const project = await Project.findOne({ projectId: req.params.id });
     if (!project) {
       return res.status(404).json({
         success: false,
@@ -45,7 +63,7 @@ const getProjectById = async (req, res) => {
       });
     }
 
-    const tasks = await Task.find({ projectId: project.projectId, userId: req.user.userId }).sort({ createdAt: -1 });
+    const tasks = await Task.find({ projectId: project.projectId }).sort({ createdAt: -1 });
     const completedTasks = tasks.filter(t => t.status === 'completed');
     const progressTasks = tasks.filter(t => t.status === 'progress');
 
@@ -87,6 +105,13 @@ const createProject = async (req, res) => {
       deadline: deadline || null
     });
 
+    // Add creator as owner in ProjectMember
+    await ProjectMember.create({
+      projectId: project.projectId,
+      userId: req.user.userId,
+      role: 'owner'
+    });
+
     res.status(201).json({
       success: true,
       data: { ...project.toObject(), totalTasks: 0, completedTasks: 0, progressTasks: 0 },
@@ -104,6 +129,12 @@ const createProject = async (req, res) => {
 // Update project
 const updateProject = async (req, res) => {
   try {
+    // Check if user is at least a member
+    const membership = await ProjectMember.findOne({ projectId: req.params.id, userId: req.user.userId });
+    if (!membership) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update project' });
+    }
+
     const { name, description, deadline } = req.body;
     const updateData = {};
     if (name !== undefined) updateData.name = name;
@@ -111,7 +142,7 @@ const updateProject = async (req, res) => {
     if (deadline !== undefined) updateData.deadline = deadline;
 
     const project = await Project.findOneAndUpdate(
-      { projectId: req.params.id, userId: req.user.userId },
+      { projectId: req.params.id },
       updateData,
       { new: true, runValidators: true }
     );
@@ -140,8 +171,13 @@ const updateProject = async (req, res) => {
 // Delete project and its tasks
 const deleteProject = async (req, res) => {
   try {
-    const project = await Project.findOneAndDelete({ projectId: req.params.id, userId: req.user.userId });
+    // Only owner should delete project, but for simplicity we can check membership or owner
+    const membership = await ProjectMember.findOne({ projectId: req.params.id, userId: req.user.userId, role: 'owner' });
+    if (!membership) {
+      return res.status(403).json({ success: false, message: 'Only project owner can delete' });
+    }
 
+    const project = await Project.findOneAndDelete({ projectId: req.params.id });
     if (!project) {
       return res.status(404).json({
         success: false,
@@ -150,7 +186,10 @@ const deleteProject = async (req, res) => {
     }
 
     // Delete all tasks belonging to this project
-    await Task.deleteMany({ projectId: project.projectId, userId: req.user.userId });
+    await Task.deleteMany({ projectId: project.projectId });
+    
+    // Delete all memberships
+    await ProjectMember.deleteMany({ projectId: project.projectId });
 
     res.status(200).json({
       success: true,
@@ -166,10 +205,75 @@ const deleteProject = async (req, res) => {
   }
 };
 
+// Add a member to a project
+const addProjectMember = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const { id: projectId } = req.params;
+
+    if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+    // 1. Check caller is already a member of this project
+    const callerMembership = await ProjectMember.findOne({
+      projectId,
+      userId: req.user.userId
+    });
+    if (!callerMembership) return res.status(403).json({ success: false, message: 'Not authorized to invite to this project' });
+
+    // 2. Look up the invited user by email
+    const invitee = await User.findOne({ email });
+    if (!invitee) return res.status(404).json({ success: false, message: 'No user found with that email' });
+
+    // 3. Add them (upsert so re-inviting is safe)
+    await ProjectMember.findOneAndUpdate(
+      { projectId, userId: invitee.userId },
+      { role: 'member' },
+      { upsert: true, new: true }
+    );
+
+    res.status(200).json({ success: true, message: `${email} added to project` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error adding teammate', error: error.message });
+  }
+};
+
+// Get members of a project
+const getProjectMembers = async (req, res) => {
+  try {
+    const { id: projectId } = req.params;
+
+    const membership = await ProjectMember.findOne({ projectId, userId: req.user.userId });
+    if (!membership) return res.status(403).json({ success: false, message: 'Not authorized' });
+
+    const members = await ProjectMember.find({ projectId });
+    
+    // Map to user info
+    const userIds = members.map(m => m.userId);
+    const users = await User.find({ userId: { $in: userIds } }, 'userId name email');
+    
+    // Merge role
+    const membersList = users.map(u => {
+      const mem = members.find(m => m.userId === u.userId);
+      return {
+        userId: u.userId,
+        name: u.name,
+        email: u.email,
+        role: mem ? mem.role : 'member'
+      };
+    });
+
+    res.status(200).json({ success: true, data: membersList });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching members', error: error.message });
+  }
+};
+
 module.exports = {
   getAllProjects,
   getProjectById,
   createProject,
   updateProject,
-  deleteProject
+  deleteProject,
+  addProjectMember,
+  getProjectMembers
 };

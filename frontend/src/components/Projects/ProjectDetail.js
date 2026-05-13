@@ -9,6 +9,42 @@ import './ProjectDetail.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
+function AddTeammateModal({ projectId, onClose }) {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState(null);
+
+  const handleSubmit = async () => {
+    try {
+      await axios.post(`${API_URL}/api/projects/${projectId}/members`, { email });
+      setStatus('success');
+      setEmail('');
+    } catch (err) {
+      setStatus(err.response?.data?.error || err.response?.data?.message || 'Something went wrong');
+    }
+  };
+
+  return (
+    <div className="teammate-modal-overlay">
+      <div className="teammate-modal">
+        <h2>Add a teammate</h2>
+        <input
+          type="email"
+          placeholder="teammate@example.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          className="settings-input"
+        />
+        <div className="teammate-modal-actions">
+          <button className="btn-cancel" onClick={onClose}>Close</button>
+          <button className="btn-save" onClick={handleSubmit}>Send invite</button>
+        </div>
+        {status === 'success' && <p className="success-msg" style={{color: 'green', marginTop: '10px'}}>Teammate added successfully!</p>}
+        {status && status !== 'success' && <p className="error-msg" style={{color: 'red', marginTop: '10px'}}>{status}</p>}
+      </div>
+    </div>
+  );
+}
+
 const ProjectDetail = () => {
   const { id } = useParams();
   const [project, setProject] = useState(null);
@@ -17,6 +53,7 @@ const ProjectDetail = () => {
   const [error, setError] = useState('');
   
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showTeammateModal, setShowTeammateModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const fetchProjectDetails = React.useCallback(async () => {
@@ -148,7 +185,12 @@ const ProjectDetail = () => {
     <div className="project-detail-page">
       <div className="project-detail-header">
         <Link to="/projects" className="back-link">← Back to Projects</Link>
-        <h1>{project.name}</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1>{project.name}</h1>
+          <button className="add-teammate-btn" onClick={() => setShowTeammateModal(true)}>
+            + Add Teammate
+          </button>
+        </div>
         {project.deadline && (
           <div className="project-deadline" style={{ fontSize: '14px', color: '#d1453b', marginBottom: '8px', fontWeight: '600' }}>
             Deadline: {new Date(project.deadline).toLocaleDateString()}
@@ -229,6 +271,13 @@ const ProjectDetail = () => {
           )}
         </div>
       </div>
+
+      {showTeammateModal && (
+        <AddTeammateModal 
+          projectId={id} 
+          onClose={() => setShowTeammateModal(false)} 
+        />
+      )}
     </div>
   );
 };

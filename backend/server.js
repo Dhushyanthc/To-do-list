@@ -99,6 +99,8 @@ app.get('/api/projects/:id', auth, projectHandlers.getProjectById);
 app.post('/api/projects', auth, projectHandlers.createProject);
 app.put('/api/projects/:id', auth, projectHandlers.updateProject);
 app.delete('/api/projects/:id', auth, projectHandlers.deleteProject);
+app.post('/api/projects/:id/members', auth, projectHandlers.addProjectMember);
+app.get('/api/projects/:id/members', auth, projectHandlers.getProjectMembers);
 
 // Report routes
 app.post('/api/report/generate', auth, reportHandlers.generateReport);
